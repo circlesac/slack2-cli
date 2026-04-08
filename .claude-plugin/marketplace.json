@@ -1,0 +1,11 @@
+{
+  "name": "slack2",
+  "owner": { "name": "Circles Inc." },
+  "plugins": [
+    {
+      "name": "slack2",
+      "source": "./",
+      "description": "Slack app lifecycle management"
+    }
+  ]
+}

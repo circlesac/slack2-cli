@@ -1,0 +1,5 @@
+{
+  "name": "slack2",
+  "description": "Slack app lifecycle CLI — create, install, and manage Slack apps from the terminal",
+  "author": { "name": "Circles Inc." }
+}

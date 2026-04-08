@@ -1,0 +1,39 @@
+{
+  "name": "@circlesac/slack2",
+  "description": "Slack app lifecycle CLI — create, install, and manage Slack apps from the terminal",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "slack2": "bin/slack2"
+  },
+  "files": [
+    "bin",
+    "skills"
+  ],
+  "scripts": {
+    "build": "bun build --compile --outfile=dist/slack2 src/index.ts",
+    "dev": "bun run src/index.ts",
+    "postinstall": "node bin/install.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "citty": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/circlesac/slack2-cli"
+  },
+  "version": "0.0.1"
+}
