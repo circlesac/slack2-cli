@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { defineCommand, runMain } from "citty";
+import { loginCommand } from "./commands/login.ts";
 import { createCommand } from "./commands/create.ts";
 import { installCommand } from "./commands/install.ts";
 import { deleteCommand } from "./commands/delete.ts";
@@ -15,6 +16,7 @@ const main = defineCommand({
     description: "Slack app lifecycle CLI",
   },
   subCommands: {
+    login: loginCommand,
     create: createCommand,
     install: installCommand,
     delete: deleteCommand,
