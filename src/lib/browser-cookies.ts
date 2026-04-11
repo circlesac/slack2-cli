@@ -7,7 +7,7 @@
  */
 
 import { Database } from "bun:sqlite";
-import { existsSync, copyFileSync, unlinkSync } from "node:fs";
+import { existsSync, copyFileSync, unlinkSync, readdirSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -16,41 +16,69 @@ import { createDecipheriv, pbkdf2Sync } from "node:crypto";
 interface BrowserConfig {
   name: string;
   keychainService: string;
-  cookiesPath: string;
+  userDataDir: string;
 }
 
 const BROWSERS: BrowserConfig[] = [
   {
     name: "Chrome",
     keychainService: "Chrome Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "Google", "Chrome", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "Google", "Chrome"),
   },
   {
     name: "Arc",
     keychainService: "Arc Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "Arc", "User Data", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "Arc", "User Data"),
   },
   {
     name: "Edge",
     keychainService: "Microsoft Edge Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "Microsoft Edge", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "Microsoft Edge"),
   },
   {
     name: "Brave",
     keychainService: "Brave Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "BraveSoftware", "Brave-Browser", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "BraveSoftware", "Brave-Browser"),
   },
   {
     name: "Chromium",
     keychainService: "Chromium Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "Chromium", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "Chromium"),
   },
   {
     name: "Comet",
     keychainService: "Comet Safe Storage",
-    cookiesPath: join(homedir(), "Library", "Application Support", "Comet", "Default", "Cookies"),
+    userDataDir: join(homedir(), "Library", "Application Support", "Comet"),
   },
 ];
+
+function findCookieDbs(userDataDir: string): string[] {
+  if (!existsSync(userDataDir)) return [];
+  const dbs: string[] = [];
+  let entries: string[];
+  try {
+    entries = readdirSync(userDataDir);
+  } catch {
+    return [];
+  }
+  for (const entry of entries) {
+    if (entry !== "Default" && !entry.startsWith("Profile ")) continue;
+    const dir = join(userDataDir, entry);
+    try {
+      if (!statSync(dir).isDirectory()) continue;
+    } catch {
+      continue;
+    }
+    for (const rel of [["Cookies"], ["Network", "Cookies"]]) {
+      const path = join(dir, ...rel);
+      if (existsSync(path)) {
+        dbs.push(path);
+        break;
+      }
+    }
+  }
+  return dbs;
+}
 
 function getKeychainKey(browser: BrowserConfig): Buffer {
   const output = execSync(
@@ -87,11 +115,9 @@ function decryptCookie(encrypted: Buffer, key: Buffer): string {
   return unpadded.toString("utf-8");
 }
 
-function findSlackCookieInBrowser(browser: BrowserConfig): string | null {
-  if (!existsSync(browser.cookiesPath)) return null;
-
-  const tmpDb = join(tmpdir(), `slack2-cookies-${Date.now()}.db`);
-  copyFileSync(browser.cookiesPath, tmpDb);
+function findSlackCookieInDb(cookiesPath: string, browser: BrowserConfig): string | null {
+  const tmpDb = join(tmpdir(), `slack2-cookies-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
+  copyFileSync(cookiesPath, tmpDb);
   try {
     const db = new Database(tmpDb, { readonly: true });
     const row = db
@@ -106,7 +132,6 @@ function findSlackCookieInBrowser(browser: BrowserConfig): string | null {
     const key = getKeychainKey(browser);
     const value = decryptCookie(Buffer.from(row.encrypted_value), key);
 
-    // Validate it looks like a Slack d cookie
     if (!value.includes("xoxd-")) return null;
 
     const match = value.match(/xoxd-[A-Za-z0-9%_.~+-]+/);
@@ -129,9 +154,15 @@ export async function readSlackCookie(): Promise<{
   if (process.platform !== "darwin") return null;
 
   for (const browser of BROWSERS) {
-    const value = findSlackCookieInBrowser(browser);
-    if (value) {
-      return { value, source: browser.name };
+    const dbs = findCookieDbs(browser.userDataDir);
+    for (const db of dbs) {
+      const value = findSlackCookieInDb(db, browser);
+      if (value) {
+        const profile = db.split("/").slice(-3, -1).join("/").includes("Network")
+          ? db.split("/").slice(-3, -2)[0]
+          : db.split("/").slice(-2, -1)[0];
+        return { value, source: `${browser.name} (${profile})` };
+      }
     }
   }
 
