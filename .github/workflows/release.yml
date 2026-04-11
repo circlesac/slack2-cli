@@ -62,6 +62,10 @@ jobs:
       - name: Build binary
         run: |
           bun build --compile --target=${{ matrix.target }} --outfile=slack2 src/index.ts
+          if [[ "${{ matrix.target }}" == bun-darwin-* ]]; then
+            codesign --remove-signature slack2
+            codesign --force --deep -s - slack2
+          fi
           tar czf ${{ matrix.name }}.tar.gz slack2
 
       - uses: actions/upload-artifact@v4
