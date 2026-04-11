@@ -13,6 +13,7 @@ export interface AppEntry {
   workspace: string;
   client_id: string;
   client_secret: string;
+  signing_secret?: string;
   bot_token?: string;
   bot_user_id?: string;
   created_at: string;

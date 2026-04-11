@@ -7,6 +7,7 @@ import { deleteCommand } from "./commands/delete.ts";
 import { listCommand } from "./commands/list.ts";
 import { updateCommand } from "./commands/update.ts";
 import { tokenCommand } from "./commands/token.ts";
+import { importCommand } from "./commands/import.ts";
 import pkg from "../package.json";
 
 const main = defineCommand({
@@ -23,6 +24,7 @@ const main = defineCommand({
     list: listCommand,
     update: updateCommand,
     token: tokenCommand,
+    import: importCommand,
   },
 });
 
