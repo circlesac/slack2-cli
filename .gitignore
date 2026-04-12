@@ -3,3 +3,4 @@ dist/
 bin/native/
 *.tgz
 .DS_Store
+*.bun-build
