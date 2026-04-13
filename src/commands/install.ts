@@ -4,6 +4,16 @@ import { redirectUri, waitForOAuthCode, exchangeCodeForToken } from "../lib/oaut
 import { slackApi } from "../lib/slack-api.ts";
 import { getWorkspaceToken } from "../lib/credentials.ts";
 
+async function getManifestScopes(workspace: string, appId: string): Promise<{ bot: string[]; user: string[] }> {
+  const token = await getWorkspaceToken(workspace);
+  const res = await slackApi("apps.manifest.export", token, { app_id: appId });
+  const manifest = res.manifest as { oauth_config?: { scopes?: { bot?: string[]; user?: string[] } } };
+  return {
+    bot: manifest?.oauth_config?.scopes?.bot ?? [],
+    user: manifest?.oauth_config?.scopes?.user ?? [],
+  };
+}
+
 export const installCommand = defineCommand({
   meta: {
     name: "install",
@@ -25,12 +35,19 @@ export const installCommand = defineCommand({
       );
     }
 
-    // Get the OAuth authorize URL from the manifest create response or build it
-    const authorizeUrl =
+    // Fetch scopes from the app's manifest
+    const scopes = await getManifestScopes(app.workspace, appId);
+    console.log(`Scopes: ${scopes.bot.join(", ")}`);
+
+    let authorizeUrl =
       `https://slack.com/oauth/v2/authorize` +
       `?client_id=${app.client_id}` +
-      `&scope=${encodeURIComponent("chat:write,chat:write.public,channels:history,channels:read")}` +
+      `&scope=${encodeURIComponent(scopes.bot.join(","))}` +
       `&redirect_uri=${encodeURIComponent(redirectUri())}`;
+
+    if (scopes.user.length > 0) {
+      authorizeUrl += `&user_scope=${encodeURIComponent(scopes.user.join(","))}`;
+    }
 
     console.log(`Installing app: ${app.name} (${appId})`);
     const code = await waitForOAuthCode(authorizeUrl);
