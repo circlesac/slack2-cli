@@ -8,6 +8,7 @@ import { listCommand } from "./commands/list.ts";
 import { updateCommand } from "./commands/update.ts";
 import { tokenCommand } from "./commands/token.ts";
 import { importCommand } from "./commands/import.ts";
+import { checkForUpdate } from "./lib/update-check.ts";
 import pkg from "../package.json";
 
 const main = defineCommand({
@@ -28,4 +29,5 @@ const main = defineCommand({
   },
 });
 
+await checkForUpdate();
 runMain(main);

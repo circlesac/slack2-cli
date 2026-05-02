@@ -23,4 +23,5 @@ URL="https://github.com/$REPO/releases/download/$VERSION/slack2-$OS-$ARCH.tar.gz
 echo "Installing slack2 $VERSION..."
 curl -fsSL "$URL" | tar xz -C "$INSTALL_DIR"
 chmod +x "$INSTALL_DIR/slack2"
+echo "standalone" > "$INSTALL_DIR/.slack2-install-method"
 echo "Installed to $INSTALL_DIR/slack2"
