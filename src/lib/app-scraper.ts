@@ -65,6 +65,47 @@ function extractTeamId(html: string): string | null {
   return m?.[1] ?? (m ? m[0] : null);
 }
 
+export interface ScrapedWebhook {
+  channel: string;
+  url: string;
+}
+
+/**
+ * Scrape configured incoming webhooks (channel + URL) from
+ * api.slack.com/apps/<app_id>/incoming-webhooks. The URLs aren't available via
+ * the Slack Web API, so we read them from the page's embedded boot data, where
+ * each webhook is `"channel":{...,"name":"<ch>",...}...,"url":"https://hooks..."`.
+ */
+export async function scrapeWebhooks(appId: string): Promise<ScrapedWebhook[]> {
+  if (!/^A[A-Z0-9]{8,}$/.test(appId)) {
+    throw new Error(`Invalid app id: ${appId}`);
+  }
+  const cookieHeader = loadCookieHeader();
+  const res = await fetch(`https://api.slack.com/apps/${appId}/incoming-webhooks`, {
+    headers: {
+      Cookie: cookieHeader,
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    },
+  });
+  if (res.status !== 200) {
+    throw new Error(`Failed to fetch incoming-webhooks page: HTTP ${res.status}`);
+  }
+  const html = await res.text();
+  if (html.includes("You'll need to sign in") || html.includes("You’ll need to sign in")) {
+    throw new Error('Session expired. Run "slack2 login" to re-authenticate.');
+  }
+
+  const re =
+    /"channel":\{[\s\S]*?"name":"([^"]+)"[\s\S]*?"url":"(https:[^"]*?hooks\.slack\.com[^"]*?)"/g;
+  const out: ScrapedWebhook[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    out.push({ channel: m[1]!, url: m[2]!.replace(/\\\//g, "/") });
+  }
+  return out;
+}
+
 export async function scrapeApp(appId: string): Promise<ScrapedApp> {
   if (!/^A[A-Z0-9]{8,}$/.test(appId)) {
     throw new Error(`Invalid app id: ${appId}`);

@@ -101,3 +101,51 @@ export async function exchangeCodeForToken(
     botUserId: data.bot_user_id ?? "",
   };
 }
+
+/**
+ * Exchange an authorization code (from an incoming-webhook OAuth flow) for the
+ * minted webhook. Slack returns the webhook under `incoming_webhook`; the
+ * channel is the one the user picked on the consent screen.
+ */
+export async function exchangeCodeForWebhook(
+  code: string,
+  clientId: string,
+  clientSecret: string,
+  redirect: string,
+): Promise<{ url: string; channel: string; channelId: string; configurationUrl: string }> {
+  const res = await fetch("https://slack.com/api/oauth.v2.access", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirect,
+    }),
+  });
+
+  const data = (await res.json()) as {
+    ok: boolean;
+    error?: string;
+    incoming_webhook?: {
+      url?: string;
+      channel?: string;
+      channel_id?: string;
+      configuration_url?: string;
+    };
+  };
+
+  if (!data.ok || !data.incoming_webhook?.url) {
+    throw new Error(
+      `oauth.v2.access (incoming-webhook) failed: ${data.error ?? "no incoming_webhook in response (was incoming-webhook scope granted?)"}`,
+    );
+  }
+
+  const wh = data.incoming_webhook;
+  return {
+    url: wh.url!,
+    channel: wh.channel ?? "",
+    channelId: wh.channel_id ?? "",
+    configurationUrl: wh.configuration_url ?? "",
+  };
+}

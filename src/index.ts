@@ -8,6 +8,7 @@ import { listCommand } from "./commands/list.ts";
 import { updateCommand } from "./commands/update.ts";
 import { tokenCommand } from "./commands/token.ts";
 import { importCommand } from "./commands/import.ts";
+import { webhookCommand } from "./commands/webhook.ts";
 import { checkForUpdate } from "./lib/update-check.ts";
 import pkg from "../package.json";
 
@@ -26,6 +27,7 @@ const main = defineCommand({
     update: updateCommand,
     token: tokenCommand,
     import: importCommand,
+    webhook: webhookCommand,
   },
 });
 
