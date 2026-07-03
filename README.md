@@ -37,6 +37,7 @@ The session is saved to `~/.config/slack2/cookies.json`. Re-run `slack2 login` i
 | `install` | `<APP-ID>` | Install a created app to the workspace (OAuth) → bot token |
 | `list` | — | List Slack apps from api.slack.com |
 | `update` | `<APP-ID>` | Update an app's manifest |
+| `icon` | `<APP-ID> --image ./icon.png` | Upload an app icon through the app display-info form |
 | `delete` | `<APP-ID>` | Delete an app via the Manifest API |
 | `token` | `<APP-ID>` | Print the bot token for an app |
 | `import` | `<APP-ID>` `-w/--workspace` `-f/--force` | Import an externally-created app into local config (scrapes client/signing secret) |

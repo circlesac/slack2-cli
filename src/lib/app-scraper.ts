@@ -22,7 +22,7 @@ export interface ScrapedApp {
   signing_secret: string;
 }
 
-function loadCookieHeader(): string {
+export function loadCookieHeader(): string {
   if (!existsSync(COOKIES_FILE)) {
     throw new Error('No saved session. Run "slack2 login" first.');
   }

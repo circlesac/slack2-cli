@@ -7,11 +7,13 @@ describe("credentials", () => {
     afterEach(() => {
       globalThis.fetch = originalFetch;
       vi.restoreAllMocks();
+      vi.doUnmock("node:fs");
+      vi.resetModules();
     });
 
     it("should throw if credentials file does not exist", async () => {
       // Mock fs.existsSync to return false
-      vi.mock("node:fs", async (importOriginal) => {
+      vi.doMock("node:fs", async (importOriginal) => {
         const actual = await importOriginal<typeof import("node:fs")>();
         return {
           ...actual,
@@ -25,14 +27,12 @@ describe("credentials", () => {
       await expect(getWorkspaceToken("test")).rejects.toThrow(
         "credentials.json",
       );
-
-      vi.unmock("node:fs");
     });
   });
 
   describe("listWorkspaces", () => {
     it("should return empty array if no credentials file", async () => {
-      vi.mock("node:fs", async (importOriginal) => {
+      vi.doMock("node:fs", async (importOriginal) => {
         const actual = await importOriginal<typeof import("node:fs")>();
         return {
           ...actual,
@@ -44,8 +44,6 @@ describe("credentials", () => {
       const { listWorkspaces } = await import("../src/lib/credentials.ts");
       const result = await listWorkspaces();
       expect(result).toEqual([]);
-
-      vi.unmock("node:fs");
     });
   });
 });
