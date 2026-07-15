@@ -104,10 +104,12 @@ export async function saveGeneralInfo(
   }
 
   // Seed from the current page so unspecified fields round-trip unchanged.
+  // Preserve an unset card color as-is (empty) instead of forcing a default —
+  // otherwise a plain re-save would silently set a color the app never had.
   const name = update.name ?? extractInputValue(html, "name") ?? "";
   const desc = update.description ?? extractInputValue(html, "desc") ?? "";
   const appCardColor =
-    update.backgroundColor ?? extractInputValue(html, "app_card_color") ?? "#2C2D30";
+    update.backgroundColor ?? extractInputValue(html, "app_card_color") ?? "";
   const longDesc = update.longDescription ?? extractTextareaValue(html, "long_desc") ?? "";
 
   const form = new FormData();
@@ -115,7 +117,7 @@ export async function saveGeneralInfo(
   form.append("crumb", crumb);
   form.append("name", name);
   form.append("desc", desc);
-  form.append("app_card_color", appCardColor || "#2C2D30");
+  form.append("app_card_color", appCardColor);
   form.append("long_desc", longDesc);
   if (update.iconPath) {
     form.append(
