@@ -10,6 +10,7 @@ import { tokenCommand } from "./commands/token.ts";
 import { importCommand } from "./commands/import.ts";
 import { webhookCommand } from "./commands/webhook.ts";
 import { iconCommand } from "./commands/icon.ts";
+import { profileCommand } from "./commands/profile.ts";
 import { checkForUpdate } from "./lib/update-check.ts";
 import pkg from "../package.json";
 
@@ -30,6 +31,7 @@ const main = defineCommand({
     import: importCommand,
     webhook: webhookCommand,
     icon: iconCommand,
+    profile: profileCommand,
   },
 });
 
