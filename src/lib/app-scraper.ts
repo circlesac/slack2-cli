@@ -8,10 +8,7 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
-
-const COOKIES_FILE = join(homedir(), ".config", "slack2", "cookies.json");
+import { COOKIES_FILE } from "./paths.ts";
 
 export interface ScrapedApp {
   app_id: string;
