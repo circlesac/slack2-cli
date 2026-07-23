@@ -1,11 +1,11 @@
 /**
- * Local config storage at ~/.config/slack2/apps.json
- * Stores created app metadata (app_id, client_id, client_secret, bot_token).
+ * Local app registry at $XDG_CACHE_HOME/slack2/apps.json (default ~/.cache/slack2).
+ * Holds created-app metadata (app_id, client_id, client_secret, bot_token). It's a
+ * cache: fully re-fetchable from api.slack.com, so it lives under cache, not config.
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { APPS_FILE, CACHE_DIR } from "./paths.ts";
 
 export interface AppEntry {
   app_id: string;
@@ -19,11 +19,8 @@ export interface AppEntry {
   created_at: string;
 }
 
-const CONFIG_DIR = join(homedir(), ".config", "slack2");
-const APPS_FILE = join(CONFIG_DIR, "apps.json");
-
 function ensureDir() {
-  mkdirSync(CONFIG_DIR, { recursive: true });
+  mkdirSync(CACHE_DIR, { recursive: true });
 }
 
 export function loadApps(): AppEntry[] {

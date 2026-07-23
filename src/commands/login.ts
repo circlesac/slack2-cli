@@ -1,11 +1,7 @@
 import { defineCommand } from "citty";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { readSlackCookie } from "../lib/browser-cookies.ts";
-
-const CONFIG_DIR = join(homedir(), ".config", "slack2");
-const COOKIES_FILE = join(CONFIG_DIR, "cookies.json");
+import { COOKIES_FILE, STATE_DIR } from "../lib/paths.ts";
 
 export const loginCommand = defineCommand({
   meta: {
@@ -48,7 +44,7 @@ export const loginCommand = defineCommand({
       { name: "d", value: cookieValue, domain: ".slack.com" },
     ];
 
-    mkdirSync(CONFIG_DIR, { recursive: true });
+    mkdirSync(STATE_DIR, { recursive: true });
     writeFileSync(COOKIES_FILE, JSON.stringify(cookies, null, 2));
 
     console.log(`Session saved to ${COOKIES_FILE}`);

@@ -3,8 +3,7 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
+import { COOKIES_FILE } from "./paths.ts";
 
 export interface RemoteApp {
   name: string;
@@ -12,8 +11,6 @@ export interface RemoteApp {
   appId: string;
   distribution: string;
 }
-
-const COOKIES_FILE = join(homedir(), ".config", "slack2", "cookies.json");
 
 export function parseAppsHtml(html: string): RemoteApp[] {
   const apps: RemoteApp[] = [];
