@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import pkg from "../../package.json";
+import { CACHE_DIR, UPDATE_CHECK_FILE } from "./paths.ts";
 
 // ── Per-CLI configuration ──────────────────────────────────────────────────
 const REPO = "circlesac/slack2-cli";
@@ -12,8 +12,7 @@ const NPM_PACKAGE = "@circlesac/slack2";
 const BREW_FORMULA = "circlesac/tap/slack2";
 // ───────────────────────────────────────────────────────────────────────────
 
-const CACHE_DIR = join(homedir(), ".config", CLI_NAME, "cache");
-const CACHE_FILE = join(CACHE_DIR, "update-check.json");
+const CACHE_FILE = UPDATE_CHECK_FILE;
 const INSTALL_MARKER = `.${CLI_NAME}-install-method`;
 const SKIP_ENV = `${CLI_NAME.toUpperCase()}_NO_UPDATE_CHECK`;
 const REFRESH_ENV = `${CLI_NAME.toUpperCase()}_INTERNAL_REFRESH`;
