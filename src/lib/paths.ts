@@ -14,7 +14,7 @@
  */
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
-import { existsSync, mkdirSync, renameSync, copyFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, copyFileSync, rmSync, rmdirSync } from "node:fs";
 
 /** Honor an XDG env var when it's an absolute path; else fall back under $HOME. */
 function xdgDir(envVar: string, ...fallback: string[]): string {
@@ -28,6 +28,8 @@ export const STATE_DIR = join(xdgDir("XDG_STATE_HOME", ".local", "state"), "slac
 
 export const APPS_FILE = join(CACHE_DIR, "apps.json");
 export const COOKIES_FILE = join(STATE_DIR, "cookies.json");
+// Update-check timestamp — a throwaway cache.
+export const UPDATE_CHECK_FILE = join(CACHE_DIR, "update-check.json");
 
 const LEGACY_DIR = join(homedir(), ".config", "slack2");
 
@@ -47,4 +49,12 @@ function migrateFile(legacy: string, dest: string): void {
 export function migrateLegacyPaths(): void {
   migrateFile(join(LEGACY_DIR, "apps.json"), APPS_FILE);
   migrateFile(join(LEGACY_DIR, "cookies.json"), COOKIES_FILE);
+  // The old update-check cache is disposable — drop it (new one regenerates under
+  // CACHE_DIR), then remove the now-empty legacy ~/.config/slack2 tree.
+  try {
+    rmSync(join(LEGACY_DIR, "cache"), { recursive: true, force: true });
+    rmdirSync(LEGACY_DIR); // only succeeds if now empty; throws (caught) otherwise
+  } catch {
+    // Legacy dir still has other files — leave it be.
+  }
 }
