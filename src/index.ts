@@ -11,6 +11,7 @@ import { importCommand } from "./commands/import.ts";
 import { webhookCommand } from "./commands/webhook.ts";
 import { iconCommand } from "./commands/icon.ts";
 import { profileCommand } from "./commands/profile.ts";
+import { distributeCommand } from "./commands/distribute.ts";
 import { checkForUpdate } from "./lib/update-check.ts";
 import { migrateLegacyPaths } from "./lib/paths.ts";
 import pkg from "../package.json";
@@ -33,6 +34,7 @@ const main = defineCommand({
     webhook: webhookCommand,
     icon: iconCommand,
     profile: profileCommand,
+    distribute: distributeCommand,
   },
 });
 
