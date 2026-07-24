@@ -21,7 +21,7 @@ export const webhookListCommand = defineCommand({
     json: { type: "boolean" as const, description: "Output as JSON" },
   },
   async run({ args }) {
-    const webhooks = await scrapeWebhooks(args["app-id"]);
+    const webhooks = await scrapeWebhooks(args["app-id"]!);
     if (args.json) {
       console.log(JSON.stringify(webhooks, null, 2));
       return;
@@ -51,7 +51,7 @@ export const webhookGetCommand = defineCommand({
   },
   async run({ args }) {
     const want = args.channel.replace(/^#/, "").toLowerCase();
-    const webhooks = await scrapeWebhooks(args["app-id"]);
+    const webhooks = await scrapeWebhooks(args["app-id"]!);
     const match = webhooks.filter((h) => h.channel.toLowerCase() === want);
     if (match.length === 0) {
       console.error(
@@ -71,7 +71,7 @@ export const webhookAddCommand = defineCommand({
   },
   args: { ...appIdArg },
   async run({ args }) {
-    const appId = args["app-id"];
+    const appId = args["app-id"]!;
     const app = getApp(appId);
     if (!app) {
       throw new Error(

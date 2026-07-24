@@ -9,8 +9,6 @@ import { updateCommand } from "./commands/update.ts";
 import { tokenCommand } from "./commands/token.ts";
 import { importCommand } from "./commands/import.ts";
 import { webhookCommand } from "./commands/webhook.ts";
-import { iconCommand } from "./commands/icon.ts";
-import { profileCommand } from "./commands/profile.ts";
 import { distributeCommand } from "./commands/distribute.ts";
 import { checkForUpdate } from "./lib/update-check.ts";
 import { migrateLegacyPaths } from "./lib/paths.ts";
@@ -20,7 +18,8 @@ const main = defineCommand({
   meta: {
     name: "slack2",
     version: pkg.version,
-    description: "Slack app lifecycle CLI",
+    description:
+      "Slack app lifecycle CLI (use the official Slack CLI for app profiles and icons)",
   },
   subCommands: {
     login: loginCommand,
@@ -32,8 +31,6 @@ const main = defineCommand({
     token: tokenCommand,
     import: importCommand,
     webhook: webhookCommand,
-    icon: iconCommand,
-    profile: profileCommand,
     distribute: distributeCommand,
   },
 });

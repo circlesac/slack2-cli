@@ -8,6 +8,18 @@ user-invocable: false
 
 Slack app lifecycle management from the terminal. Uses the Slack Manifest API to create apps programmatically, then handles OAuth installation to obtain bot tokens.
 
+## Tool boundary
+
+Use `slack2` for the workflows that the public Slack APIs and official CLI do not expose conveniently:
+
+- Discovering all apps from the app-management page
+- Importing an existing app's client and signing secrets
+- Listing or retrieving existing incoming webhook URLs
+
+Do not use or extend `slack2` for app display profiles or icons. Manage `display_information` (`name`, `description`, `long_description`, and `background_color`) through the app manifest and use the official Slack CLI for manifest synchronization and icon upload.
+
+`slack2 login` captures a browser session only for `list`, `import`, and `webhook list/get`. Normal manifest lifecycle commands use the official Slack CLI credentials in `~/.slack/credentials.json`.
+
 ## Prerequisites
 
 - Slack CLI installed and authenticated (`slack login`) — credentials stored at `~/.slack/credentials.json`

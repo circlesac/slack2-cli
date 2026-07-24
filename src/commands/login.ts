@@ -6,7 +6,8 @@ import { COOKIES_FILE, STATE_DIR } from "../lib/paths.ts";
 export const loginCommand = defineCommand({
   meta: {
     name: "login",
-    description: "Save Slack session from browser cookies (auto-reads from Chrome/Slack app)",
+    description:
+      "Save a browser session for app discovery, credential import, and webhook lookup",
   },
   args: {
     cookie: {

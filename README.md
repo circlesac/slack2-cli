@@ -37,8 +37,6 @@ The session is saved to `~/.config/slack2/cookies.json`. Re-run `slack2 login` i
 | `install` | `<APP-ID>` | Install a created app to the workspace (OAuth) → bot token |
 | `list` | — | List Slack apps from api.slack.com |
 | `update` | `<APP-ID>` | Update an app's manifest |
-| `icon` | `<APP-ID> --image ./icon.png` | Upload an app icon through the app display-info form |
-| `profile` | `<APP-ID> [--name] [--description] [--long-description] [--background-color] [--icon]` | Update an app's display profile — name/description/color (and optionally icon), without touching the manifest |
 | `delete` | `<APP-ID>` | Delete an app via the Manifest API |
 | `token` | `<APP-ID>` | Print the bot token for an app |
 | `import` | `<APP-ID>` `-w/--workspace` `-f/--force` | Import an externally-created app into local config (scrapes client/signing secret) |
@@ -47,6 +45,12 @@ The session is saved to `~/.config/slack2/cookies.json`. Re-run `slack2 login` i
 | `webhook add` | `<APP-ID>` | Mint a new incoming webhook via OAuth (pick the channel on the consent screen) |
 
 App IDs look like `A0123456789` — find them with `slack2 list`.
+
+### Official Slack CLI boundary
+
+`slack2` does not manage app display profiles or icons. Use the official Slack CLI and app manifest for `display_information` (`name`, `description`, `long_description`, and `background_color`) and app icons.
+
+The browser session used by `slack2 login` is reserved for operations that the public Slack APIs and official CLI do not expose: discovering all apps from the app-management page, importing existing app secrets, and looking up existing incoming webhook URLs.
 
 ### Incoming webhooks
 
