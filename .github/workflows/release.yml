@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -20,8 +21,13 @@ jobs:
 
       - name: Calculate version
         id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(npx --yes @circlesac/oneup version --target package.json | tail -1)
+          while gh release view "v${VERSION}" >/dev/null 2>&1; do
+            VERSION=$(npm version patch --no-git-tag-version | sed 's/^v//')
+          done
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
@@ -55,9 +61,10 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: versioned-files
+      - name: Download versioned files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --name versioned-files
 
       - name: Build binary
         run: |
@@ -79,9 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v8
-        with:
-          path: artifacts
+      - name: Download build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --dir artifacts
 
       - name: Create release
         uses: softprops/action-gh-release@v3
@@ -96,6 +104,7 @@ jobs:
     needs: [version, release]
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       id-token: write
     steps:
@@ -106,9 +115,10 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: versioned-files
+      - name: Download versioned files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --name versioned-files
 
       - name: Publish to npm
         run: npm publish --access public
@@ -119,9 +129,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v8
-        with:
-          path: artifacts
+      - name: Download build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --dir artifacts
 
       - name: Update Homebrew formula
         env:
