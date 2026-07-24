@@ -64,7 +64,9 @@ jobs:
       - name: Download versioned files
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" --name versioned-files
+        run: |
+          gh run download "$GITHUB_RUN_ID" --name versioned-files --dir versioned-files
+          cp versioned-files/package.json package.json
 
       - name: Build binary
         run: |
@@ -118,7 +120,9 @@ jobs:
       - name: Download versioned files
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" --name versioned-files
+        run: |
+          gh run download "$GITHUB_RUN_ID" --name versioned-files --dir versioned-files
+          cp versioned-files/package.json package.json
 
       - name: Publish to npm
         run: npm publish --access public
