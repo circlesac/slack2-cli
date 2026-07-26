@@ -1,5 +1,10 @@
 import { createInterface } from "node:readline/promises";
 
+export function formatCliError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 export async function confirmMutation(
   question: string,
   options: { yes?: boolean; dryRun?: boolean },

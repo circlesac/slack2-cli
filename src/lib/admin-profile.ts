@@ -197,9 +197,13 @@ export function applyProfileFieldChanges(
   if (changes.source) {
     const valid = validProfileDataSources(element);
     if (!valid.includes(changes.source)) {
+      const planHint =
+        changes.source === "scim"
+          ? " Slack does not expose SCIM for this field in the current workspace configuration or plan."
+          : "";
       throw new Error(
         `Field "${element.label}" cannot use source "${changes.source}". ` +
-          `Valid sources: ${valid.join(", ") || "none"}.`,
+          `Valid sources: ${valid.join(", ") || "none"}.${planHint}`,
       );
     }
     element.permissions = permissionsForSource(changes.source);

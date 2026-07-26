@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectRepeatedOption,
+  formatCliError,
   parsePositiveInteger,
   redactSensitive,
   toEpochSeconds,
@@ -16,6 +17,13 @@ import {
 } from "../src/lib/workspace-client.ts";
 
 describe("admin safety", () => {
+  it("formats command failures without stack traces", () => {
+    expect(formatCliError(new Error("plan not supported"))).toBe(
+      "plan not supported",
+    );
+    expect(formatCliError("plain failure")).toBe("plain failure");
+  });
+
   it("redacts tokens, secrets, and network identifiers recursively", () => {
     expect(
       redactSensitive({

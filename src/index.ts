@@ -13,6 +13,7 @@ import { distributeCommand } from "./commands/distribute.ts";
 import { adminCommand } from "./commands/admin.ts";
 import { checkForUpdate } from "./lib/update-check.ts";
 import { migrateLegacyPaths } from "./lib/paths.ts";
+import { formatCliError } from "./lib/cli-safety.ts";
 import pkg from "../package.json";
 
 const main = defineCommand({
@@ -39,4 +40,14 @@ const main = defineCommand({
 
 migrateLegacyPaths();
 await checkForUpdate();
-runMain(main);
+// Citty logs thrown Error objects directly; Bun renders those with stack traces.
+const originalConsoleError = console.error;
+console.error = (...values: unknown[]) => {
+  if (values[0] instanceof Error) {
+    originalConsoleError(`Error: ${formatCliError(values[0])}`);
+    return;
+  }
+  originalConsoleError(...values);
+};
+await runMain(main);
+console.error = originalConsoleError;

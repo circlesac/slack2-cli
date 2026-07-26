@@ -118,6 +118,12 @@ Slack's admin profile editor publishes the entire profile schema at once.
 `slack2` reads the latest schema, modifies exactly one resolved field, displays
 the diff, and then publishes the complete schema only after confirmation.
 
+Available sources are resolved from each field's live workspace schema. Do not
+assume that two workspaces expose the same choices: for example, a Pro
+workspace may offer only `member` and `api`, while an eligible Business+
+workspace can additionally expose `scim`. Unsupported choices fail before any
+write request is sent.
+
 ### Audit logs and access logs
 
 These are separate data sets and commands:

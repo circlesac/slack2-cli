@@ -91,6 +91,11 @@ Data-source meanings:
   not directly editable by the member.
 - `scim`: owned by the mapped SCIM/identity-provider attribute.
 
+Treat plan and workspace capabilities as runtime data. Inspect
+`profile-field get/list` and its `valid_sources` output before proposing a
+change; never assume that a source available in one workspace is available in
+another. An unsupported source is rejected before confirmation or mutation.
+
 Mutations show a before/after diff, confirm interactively, support `--dry-run`,
 and reject ambiguous member or field names. Use `--yes` only for intentional
 non-interactive automation.

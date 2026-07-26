@@ -125,7 +125,16 @@ describe("admin profile fields", () => {
   it("rejects a source not supported by the Slack schema", () => {
     expect(() =>
       applyProfileFieldChanges(sections(), "Team Code", { source: "scim" })
-    ).toThrow("Valid sources: member, api");
+    ).toThrow(
+      "Valid sources: member, api. Slack does not expose SCIM for this field",
+    );
+  });
+
+  it("accepts SCIM only when the live field schema advertises it", () => {
+    const mutation = applyProfileFieldChanges(sections(), "Title", {
+      source: "scim",
+    });
+    expect(mutation.after.source).toBe("scim");
   });
 
   it("rejects visibility changes for protected fields", () => {
