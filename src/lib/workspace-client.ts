@@ -139,7 +139,14 @@ export async function workspaceApi(
     body,
   });
   if (!response.ok) {
-    throw new Error(`Slack API ${method}: HTTP ${response.status}`);
+    const retryAfter = response.headers.get("retry-after");
+    const retryHint =
+      response.status === 429 && retryAfter
+        ? ` Retry after ${retryAfter} seconds.`
+        : "";
+    throw new Error(
+      `Slack API ${method}: HTTP ${response.status}.${retryHint}`,
+    );
   }
   const data = (await response.json()) as WorkspaceApiResponse;
   if (!data.ok) throw workspaceApiError(method, data.error);

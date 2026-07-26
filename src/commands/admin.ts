@@ -31,6 +31,10 @@ import {
   fetchWorkspaceAdminPage,
   workspaceApi,
 } from "../lib/workspace-client.ts";
+import {
+  adminDiffCommand,
+  adminSnapshotCommand,
+} from "./admin-snapshot.ts";
 
 const workspaceArg = {
   workspace: {
@@ -779,6 +783,8 @@ export const adminCommand = defineCommand({
     description: "Workspace administration and audit commands",
   },
   subCommands: {
+    snapshot: adminSnapshotCommand,
+    diff: adminDiffCommand,
     whoami: adminWhoamiCommand,
     "profile-field": adminProfileFieldCommand,
     "member-profile": adminMemberProfileCommand,

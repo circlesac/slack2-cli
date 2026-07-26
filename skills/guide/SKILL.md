@@ -84,6 +84,21 @@ slack2 admin member-profile update U0123456789 \
   --dry-run
 ```
 
+For workspace audits or comparisons, collect normalized snapshots first:
+
+```bash
+slack2 admin snapshot --workspace example --json
+slack2 admin snapshot --workspace example --section capabilities
+slack2 admin diff --from example-a --to example-b
+slack2 admin diff --from example-a --to example-b --section profile_fields
+```
+
+Snapshot and diff output is plan-aware. Treat `unsupported_by_plan`,
+`permission_denied`, `authentication_required`, and `rate_limited` as source
+states, not setting values. A failed source is excluded from dependent value
+comparison. Snapshot output contains aggregate member counts and redacted
+configuration only; do not add raw member profiles or log entries to it.
+
 Data-source meanings:
 
 - `member`: editable by the member in Slack.

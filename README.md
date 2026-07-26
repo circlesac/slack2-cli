@@ -63,6 +63,8 @@ Manifest lifecycle commands also use the official Slack CLI credentials in
 | `admin billing show/history` | `-w/--workspace` | Show plan, renewal, seat count, cost, and redacted billing events |
 | `admin audit-log list` | `-w/--workspace` filters | Read Enterprise Audit Logs API events |
 | `admin access-log list` | `-w/--workspace` filters | Read paid-workspace access logs |
+| `admin snapshot` | `-w/--workspace` `--section` `--json` | Collect a redacted, plan-aware admin settings snapshot |
+| `admin diff` | `--from <workspace>` `--to <workspace>` `--section` `--json` | Compare two live admin snapshots |
 
 App IDs look like `A0123456789` — find them with `slack2 list`.
 
@@ -137,6 +139,34 @@ These are separate data sets and commands:
 Network identifiers (`ip`, `ip_address`, `isp`, and `user_agent`) are redacted
 by default, including in JSON. Pass `--include-network` only when those values
 are needed for an authorized investigation.
+
+### Workspace snapshots and comparison
+
+Use snapshots to inspect the broad workspace admin configuration without
+collecting member profile values or log entries:
+
+```bash
+slack2 admin snapshot --workspace example --json
+slack2 admin snapshot --workspace example --section capabilities
+
+slack2 admin diff --from example-a --to example-b
+slack2 admin diff \
+  --from example-a \
+  --to example-b \
+  --section profile_fields \
+  --json
+```
+
+Snapshots normalize the live workspace preferences, authentication mode,
+profile schema, plan and billing summary, aggregate member roles, default
+channel names, and customization counts. Tokens, email addresses, phone
+numbers, IP ranges, user IDs, URLs, and raw member records are omitted,
+redacted, or represented by non-reversible fingerprints.
+
+The diff distinguishes ordinary value changes from `unsupported_by_plan`,
+`permission_denied`, `authentication_required`, and `rate_limited` source
+states. If one source cannot be collected, dependent values are excluded from
+comparison instead of being reported as missing settings.
 
 ### Incoming webhooks
 

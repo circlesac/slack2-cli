@@ -70,6 +70,12 @@ export interface SlackMember {
   name?: string;
   deleted?: boolean;
   is_bot?: boolean;
+  is_app_user?: boolean;
+  is_restricted?: boolean;
+  is_ultra_restricted?: boolean;
+  is_admin?: boolean;
+  is_owner?: boolean;
+  is_primary_owner?: boolean;
   profile?: {
     email?: string;
     display_name?: string;
