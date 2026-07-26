@@ -8,7 +8,8 @@ API-managed member profiles, and read access or audit logs from the terminal.
 slack2 list                                   # apps you can manage
 slack2 import A0123456789                      # pull an app's credentials into local config
 slack2 webhook get A0123456789 --channel ops  # print a channel's incoming webhook URL
-slack2 admin profile-field list -w example     # inspect workspace profile writers
+slack2 admin workspace show -w example         # inspect workspace identity and plan
+slack2 admin member list -w example            # list workspace members
 slack2 admin access-log list -w example        # redacted workspace access log
 ```
 
@@ -55,16 +56,22 @@ Manifest lifecycle commands also use the official Slack CLI credentials in
 | `webhook get` | `<APP-ID>` `--channel <name>` | Print one channel's incoming webhook URL (scriptable) |
 | `webhook add` | `<APP-ID>` | Mint a new incoming webhook via OAuth (pick the channel on the consent screen) |
 | `admin whoami` | `-w/--workspace` `--json` | Show the signed-in member's workspace role |
+| `admin workspace show/update` | `-w/--workspace` name, locale, or DND options | Inspect identity/plan and manage workspace-wide defaults |
+| `admin member list/get` | `-w/--workspace` filters | Inspect workspace membership |
+| `admin channel list/get` | `-w/--workspace` filters | Inspect channels visible to the signed-in admin |
+| `admin emoji list` | `-w/--workspace` `--aliases` | List custom emoji and aliases |
+| `admin invitation list/show/update` | `-w/--workspace` type/domain options | Inspect invitation history and manage approved-domain joining |
 | `admin profile-field list/get` | `-w/--workspace` `--json` | Inspect field source, visibility, and allowed writers |
 | `admin profile-field update` | `<field>` `--source member\|api\|scim` `--visible\|--hidden` | Change one field with a diff, confirmation, and `--dry-run` |
 | `admin member-profile get` | `<member>` `-w/--workspace` | Read one member profile |
 | `admin member-profile update` | `<member>` `--title` `--field <id>=<value>` | Update API-managed values with confirmation and `--dry-run` |
+| `admin profile-policy show/update` | `-w/--workspace` display/editor options | Manage profile display and schema-editor policies |
+| `admin channel-policy show/update` | `-w/--workspace` message options | Manage message editing, join/leave, and mention-warning policies |
+| `admin retention show/update` | `-w/--workspace` scope/mode/days | Manage message, file, canvas, and list retention |
 | `admin auth show` | `-w/--workspace` | Show a whitelisted authentication summary |
 | `admin billing show/history` | `-w/--workspace` | Show plan, renewal, seat count, cost, and redacted billing events |
 | `admin audit-log list` | `-w/--workspace` filters | Read Enterprise Audit Logs API events |
 | `admin access-log list` | `-w/--workspace` filters | Read paid-workspace access logs |
-| `admin snapshot` | `-w/--workspace` `--section` `--json` | Collect a redacted, plan-aware admin settings snapshot |
-| `admin diff` | `--from <workspace>` `--to <workspace>` `--section` `--json` | Compare two live admin snapshots |
 
 App IDs look like `A0123456789` — find them with `slack2 list`.
 
@@ -84,6 +91,34 @@ Every admin command requires an explicit workspace domain:
 ```bash
 # Verify the session and role
 slack2 admin whoami --workspace example
+
+# Actual workspace resources
+slack2 admin workspace show --workspace example
+slack2 admin member list --workspace example --role owner
+slack2 admin channel list --workspace example --type public
+slack2 admin emoji list --workspace example --aliases
+slack2 admin invitation list --workspace example --type pending
+
+# Workspace policy changes
+slack2 admin profile-policy update \
+  --workspace example \
+  --display-phone enabled \
+  --dry-run
+slack2 admin channel-policy update \
+  --workspace example \
+  --message-edit-window 60 \
+  --dry-run
+slack2 admin invitation update \
+  --workspace example \
+  --domain-join enabled \
+  --domains example.com \
+  --dry-run
+slack2 admin retention update \
+  --workspace example \
+  --scope public \
+  --mode delete-after \
+  --days 365 \
+  --dry-run
 
 # Profile field schema
 slack2 admin profile-field list --workspace example
@@ -126,6 +161,16 @@ workspace may offer only `member` and `api`, while an eligible Business+
 workspace can additionally expose `scim`. Unsupported choices fail before any
 write request is sent.
 
+Workspace policy changes use the same browser-backed Slack admin forms as the
+web admin UI. `--dry-run` also checks that the relevant form exists for the
+current owner, plan, and organization context. A setting available on
+Business+ may therefore fail cleanly on Pro instead of being treated as a
+false/default value.
+
+Retention writes are intentionally explicit: update one scope at a time, and
+provide `--days` for a delete-after mode. The confirmation warns when a policy
+can permanently remove messages or retained content.
+
 ### Audit logs and access logs
 
 These are separate data sets and commands:
@@ -139,34 +184,6 @@ These are separate data sets and commands:
 Network identifiers (`ip`, `ip_address`, `isp`, and `user_agent`) are redacted
 by default, including in JSON. Pass `--include-network` only when those values
 are needed for an authorized investigation.
-
-### Workspace snapshots and comparison
-
-Use snapshots to inspect the broad workspace admin configuration without
-collecting member profile values or log entries:
-
-```bash
-slack2 admin snapshot --workspace example --json
-slack2 admin snapshot --workspace example --section capabilities
-
-slack2 admin diff --from example-a --to example-b
-slack2 admin diff \
-  --from example-a \
-  --to example-b \
-  --section profile_fields \
-  --json
-```
-
-Snapshots normalize the live workspace preferences, authentication mode,
-profile schema, plan and billing summary, aggregate member roles, default
-channel names, and customization counts. Tokens, email addresses, phone
-numbers, IP ranges, user IDs, URLs, and raw member records are omitted,
-redacted, or represented by non-reversible fingerprints.
-
-The diff distinguishes ordinary value changes from `unsupported_by_plan`,
-`permission_denied`, `authentication_required`, and `rate_limited` source
-states. If one source cannot be collected, dependent values are excluded from
-comparison instead of being reported as missing settings.
 
 ### Incoming webhooks
 

@@ -19,6 +19,8 @@ Use `slack2` for the workflows that the public Slack APIs and official CLI do no
 - Listing or retrieving existing incoming webhook URLs
 - Inspecting and publishing workspace profile field configuration
 - Updating member values for fields configured with the API data source
+- Inspecting workspace, member, channel, emoji, and policy resources
+- Applying supported workspace and policy changes with verified admin forms
 - Inspecting authentication, billing, access-log, and eligible audit-log data
 
 Do not use or extend `slack2` for app display profiles or icons. Manage `display_information` (`name`, `description`, `long_description`, and `background_color`) through the app manifest and use the official Slack CLI for manifest synchronization and icon upload.
@@ -63,6 +65,34 @@ Always pass an explicit workspace domain:
 # Confirm identity and role
 slack2 admin whoami --workspace example
 
+# Inspect actual resources
+slack2 admin workspace show --workspace example
+slack2 admin member list --workspace example --role admin
+slack2 admin channel list --workspace example --type public
+slack2 admin emoji list --workspace example --aliases
+slack2 admin invitation list --workspace example --type pending
+
+# Preview one workspace policy change
+slack2 admin profile-policy update \
+  --workspace example \
+  --display-phone enabled \
+  --dry-run
+slack2 admin channel-policy update \
+  --workspace example \
+  --message-edit-window 60 \
+  --dry-run
+slack2 admin invitation update \
+  --workspace example \
+  --domain-join enabled \
+  --domains example.com \
+  --dry-run
+slack2 admin retention update \
+  --workspace example \
+  --scope public \
+  --mode delete-after \
+  --days 365 \
+  --dry-run
+
 # Inspect the schema before changing it
 slack2 admin profile-field list --workspace example
 slack2 admin profile-field get Title --workspace example --json
@@ -84,20 +114,23 @@ slack2 admin member-profile update U0123456789 \
   --dry-run
 ```
 
-For workspace audits or comparisons, collect normalized snapshots first:
+Admin commands are resource/action oriented:
 
 ```bash
-slack2 admin snapshot --workspace example --json
-slack2 admin snapshot --workspace example --section capabilities
-slack2 admin diff --from example-a --to example-b
-slack2 admin diff --from example-a --to example-b --section profile_fields
+slack2 admin workspace show --workspace example
+slack2 admin member list --workspace example
+slack2 admin channel get engineering --workspace example
+slack2 admin invitation show --workspace example
+slack2 admin profile-policy show --workspace example
+slack2 admin channel-policy show --workspace example
+slack2 admin retention show --workspace example
 ```
 
-Snapshot and diff output is plan-aware. Treat `unsupported_by_plan`,
-`permission_denied`, `authentication_required`, and `rate_limited` as source
-states, not setting values. A failed source is excluded from dependent value
-comparison. Snapshot output contains aggregate member counts and redacted
-configuration only; do not add raw member profiles or log entries to it.
+Do not use `snapshot` or `diff` as public commands. Normalization may be used
+internally for tests, but user-facing admin operations must identify the
+resource and action. Do not publish a read-only preference category merely to
+make the command tree look complete; add a resource when it has a concrete
+Slack operation and tested plan/permission behavior.
 
 Data-source meanings:
 
@@ -114,6 +147,15 @@ another. An unsupported source is rejected before confirmation or mutation.
 Mutations show a before/after diff, confirm interactively, support `--dry-run`,
 and reject ambiguous member or field names. Use `--yes` only for intentional
 non-interactive automation.
+
+Retention changes can delete data permanently. Update only one scope per
+command, always preview with `--dry-run`, and do not use `--yes` unless the
+requested policy and duration were explicitly authorized.
+
+For browser-backed workspace policy changes, `--dry-run` must also verify that
+Slack exposes the corresponding admin form. Treat a missing form as a
+plan/permission/organization-level capability gap and do not attempt a generic
+preference write.
 
 ## Logs
 

@@ -32,9 +32,15 @@ import {
   workspaceApi,
 } from "../lib/workspace-client.ts";
 import {
-  adminDiffCommand,
-  adminSnapshotCommand,
-} from "./admin-snapshot.ts";
+  adminChannelCommand,
+  adminChannelPolicyCommand,
+  adminEmojiCommand,
+  adminInvitationCommand,
+  adminMemberCommand,
+  adminProfilePolicyCommand,
+  adminRetentionCommand,
+  adminWorkspaceCommand,
+} from "./admin-resources.ts";
 
 const workspaceArg = {
   workspace: {
@@ -139,6 +145,11 @@ function profileFieldValue(
   return String(profile.fields?.[fieldId]?.value ?? "");
 }
 
+function required(value: string | undefined, option: string): string {
+  if (!value) throw new Error(`${option} is required.`);
+  return value;
+}
+
 export const adminWhoamiCommand = defineCommand({
   meta: {
     name: "whoami",
@@ -146,14 +157,15 @@ export const adminWhoamiCommand = defineCommand({
   },
   args: { ...workspaceArg, ...jsonArg },
   async run({ args }) {
-    const auth = await workspaceApi(args.workspace, "auth.test");
+    const workspace = required(args.workspace, "--workspace");
+    const auth = await workspaceApi(workspace, "auth.test");
     const userId = String(auth.user_id ?? "");
-    const info = await workspaceApi(args.workspace, "users.info", {
+    const info = await workspaceApi(workspace, "users.info", {
       user: userId,
     });
     const user = (info.user ?? {}) as Record<string, unknown>;
     const result = {
-      workspace: args.workspace,
+      workspace,
       team_id: auth.team_id ?? null,
       user_id: userId,
       admin: Boolean(user.is_admin),
@@ -177,7 +189,9 @@ export const adminProfileFieldListCommand = defineCommand({
   },
   args: { ...workspaceArg, ...jsonArg },
   async run({ args }) {
-    const sections = await getAdminProfileSections(args.workspace);
+    const sections = await getAdminProfileSections(
+      required(args.workspace, "--workspace"),
+    );
     const fields = flattenProfileFields(sections)
       .map(summarizeProfileField)
       .sort((a, b) =>
@@ -203,9 +217,11 @@ export const adminProfileFieldGetCommand = defineCommand({
     ...jsonArg,
   },
   async run({ args }) {
-    const sections = await getAdminProfileSections(args.workspace);
+    const sections = await getAdminProfileSections(
+      required(args.workspace, "--workspace"),
+    );
     const field = summarizeProfileField(
-      resolveProfileField(sections, args.field),
+      resolveProfileField(sections, required(args.field, "<field>")),
     );
     if (args.json) printJson(field);
     else {
@@ -246,6 +262,8 @@ export const adminProfileFieldUpdateCommand = defineCommand({
     ...jsonArg,
   },
   async run({ args }) {
+    const workspace = required(args.workspace, "--workspace");
+    const fieldQuery = required(args.field, "<field>");
     if (args.visible && args.hidden) {
       throw new Error("--visible and --hidden cannot be used together.");
     }
@@ -255,13 +273,13 @@ export const adminProfileFieldUpdateCommand = defineCommand({
       throw new Error("Pass --source, --visible, or --hidden.");
     }
 
-    const sections = await getAdminProfileSections(args.workspace);
-    const mutation = applyProfileFieldChanges(sections, args.field, {
+    const sections = await getAdminProfileSections(workspace);
+    const mutation = applyProfileFieldChanges(sections, fieldQuery, {
       source,
       visible,
     });
     const diff = {
-      workspace: args.workspace,
+      workspace,
       field: mutation.before.id,
       dry_run: Boolean(args["dry-run"]),
       before: {
@@ -288,14 +306,14 @@ export const adminProfileFieldUpdateCommand = defineCommand({
       return;
     }
     const confirmed = await confirmMutation(
-      `Publish this profile field change to ${args.workspace}?`,
+      `Publish this profile field change to ${workspace}?`,
       { yes: args.yes },
     );
     if (!confirmed) {
       console.error("Cancelled.");
       return;
     }
-    await setAdminProfileSections(args.workspace, mutation.sections);
+    await setAdminProfileSections(workspace, mutation.sections);
     if (!args.json) {
       console.log(`Updated profile field: ${mutation.before.label}`);
     }
@@ -329,12 +347,13 @@ export const adminMemberProfileGetCommand = defineCommand({
     ...jsonArg,
   },
   async run({ args }) {
+    const workspace = required(args.workspace, "--workspace");
     const [members, sections] = await Promise.all([
-      listMembers(args.workspace),
-      getAdminProfileSections(args.workspace),
+      listMembers(workspace),
+      getAdminProfileSections(workspace),
     ]);
-    const member = resolveMember(members, args.member);
-    const response = await workspaceApi(args.workspace, "users.profile.get", {
+    const member = resolveMember(members, required(args.member, "<member>"));
+    const response = await workspaceApi(workspace, "users.profile.get", {
       user: member.id,
     });
     const profile = (response.profile ?? {}) as Record<string, any>;
@@ -395,6 +414,7 @@ export const adminMemberProfileUpdateCommand = defineCommand({
     ...jsonArg,
   },
   async run({ args, rawArgs }) {
+    const workspace = required(args.workspace, "--workspace");
     const repeatedFields = collectRepeatedOption(rawArgs, "field");
     const assignments = parseFieldAssignments(
       repeatedFields.length > 0 ? repeatedFields : args.field,
@@ -404,11 +424,11 @@ export const adminMemberProfileUpdateCommand = defineCommand({
     }
 
     const [members, sections] = await Promise.all([
-      listMembers(args.workspace),
-      getAdminProfileSections(args.workspace),
+      listMembers(workspace),
+      getAdminProfileSections(workspace),
     ]);
-    const member = resolveMember(members, args.member);
-    const response = await workspaceApi(args.workspace, "users.profile.get", {
+    const member = resolveMember(members, required(args.member, "<member>"));
+    const response = await workspaceApi(workspace, "users.profile.get", {
       user: member.id,
     });
     const current = (response.profile ?? {}) as Record<string, any>;
@@ -455,7 +475,7 @@ export const adminMemberProfileUpdateCommand = defineCommand({
       throw new Error("The requested member profile values are already set.");
     }
     const diff = {
-      workspace: args.workspace,
+      workspace,
       user_id: member.id,
       dry_run: Boolean(args["dry-run"]),
       changes: Object.fromEntries(
@@ -477,7 +497,7 @@ export const adminMemberProfileUpdateCommand = defineCommand({
       return;
     }
     const confirmed = await confirmMutation(
-      `Update this member profile in ${args.workspace}?`,
+      `Update this member profile in ${workspace}?`,
       { yes: args.yes },
     );
     if (!confirmed) {
@@ -485,7 +505,7 @@ export const adminMemberProfileUpdateCommand = defineCommand({
       return;
     }
     await workspaceApi(
-      args.workspace,
+      workspace,
       "users.profile.set",
       { user: member.id, profile },
       "slack2-admin-member-profile-update",
@@ -512,7 +532,10 @@ export const adminAuthShowCommand = defineCommand({
   },
   args: { ...workspaceArg, ...jsonArg },
   async run({ args }) {
-    const response = await workspaceApi(args.workspace, "team.prefs.get");
+    const response = await workspaceApi(
+      required(args.workspace, "--workspace"),
+      "team.prefs.get",
+    );
     const summary = summarizeAuthPrefs(
       (response.prefs ?? response) as Record<string, unknown>,
     );
@@ -540,7 +563,10 @@ export const adminBillingShowCommand = defineCommand({
   },
   args: { ...workspaceArg, ...jsonArg },
   async run({ args }) {
-    const html = await fetchWorkspaceAdminPage(args.workspace, "/admin/billing");
+    const html = await fetchWorkspaceAdminPage(
+      required(args.workspace, "--workspace"),
+      "/admin/billing",
+    );
     const summary = parseBillingOverview(html);
     if (args.json) printJson(summary);
     else {
@@ -571,7 +597,7 @@ export const adminBillingHistoryCommand = defineCommand({
   },
   async run({ args }) {
     const response = await workspaceApi(
-      args.workspace,
+      required(args.workspace, "--workspace"),
       "payments.billing.history.list",
     );
     let items = summarizeBillingHistory(
@@ -665,7 +691,7 @@ export const adminAuditLogListCommand = defineCommand({
   },
   async run({ args }) {
     const data = await fetchAuditLogs({
-      workspace: args.workspace,
+      workspace: required(args.workspace, "--workspace"),
       appId: args["app-id"],
       oldest: args.since ? toEpochSeconds(args.since) : undefined,
       latest: args.until ? toEpochSeconds(args.until) : undefined,
@@ -741,11 +767,15 @@ export const adminAccessLogListCommand = defineCommand({
     ...jsonArg,
   },
   async run({ args }) {
-    const response = await workspaceApi(args.workspace, "team.accessLogs", {
-      limit: parsePositiveInteger(args.limit, "--limit"),
-      ...(args.before ? { before: toEpochSeconds(args.before) } : {}),
-      ...(args.cursor ? { cursor: args.cursor } : {}),
-    });
+    const response = await workspaceApi(
+      required(args.workspace, "--workspace"),
+      "team.accessLogs",
+      {
+        limit: parsePositiveInteger(args.limit, "--limit"),
+        ...(args.before ? { before: toEpochSeconds(args.before) } : {}),
+        ...(args.cursor ? { cursor: args.cursor } : {}),
+      },
+    );
     const safe = redactSensitive(response, {
       includeNetwork: args["include-network"],
     }) as Record<string, any>;
@@ -783,11 +813,17 @@ export const adminCommand = defineCommand({
     description: "Workspace administration and audit commands",
   },
   subCommands: {
-    snapshot: adminSnapshotCommand,
-    diff: adminDiffCommand,
     whoami: adminWhoamiCommand,
+    workspace: adminWorkspaceCommand,
+    member: adminMemberCommand,
+    channel: adminChannelCommand,
+    emoji: adminEmojiCommand,
+    invitation: adminInvitationCommand,
     "profile-field": adminProfileFieldCommand,
     "member-profile": adminMemberProfileCommand,
+    "profile-policy": adminProfilePolicyCommand,
+    "channel-policy": adminChannelPolicyCommand,
+    retention: adminRetentionCommand,
     auth: adminAuthCommand,
     billing: adminBillingCommand,
     "audit-log": adminAuditLogCommand,

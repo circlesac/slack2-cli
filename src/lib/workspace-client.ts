@@ -18,7 +18,7 @@ export function extractWorkspaceClientToken(html: string): string | null {
   return html.match(/"api_token"\s*:\s*"(xoxc-[^"]+)"/)?.[1] ?? null;
 }
 
-function validateWorkspace(workspace: string): string {
+export function normalizeWorkspaceDomain(workspace: string): string {
   const normalized = workspace.trim().toLowerCase().replace(/\.slack\.com$/, "");
   if (!/^[a-z0-9][a-z0-9-]*$/.test(normalized)) {
     throw new Error(`Invalid workspace domain: ${workspace}`);
@@ -45,7 +45,7 @@ export async function getWorkspaceClientToken(
   workspace: string,
   cookieHeader = loadCookieHeader(),
 ): Promise<string> {
-  const domain = validateWorkspace(workspace);
+  const domain = normalizeWorkspaceDomain(workspace);
   const existing = workspaceTokenPromises.get(domain);
   if (existing) return existing;
 
@@ -117,7 +117,7 @@ export async function workspaceApi(
   args: Record<string, unknown> = {},
   reason = `slack2-admin-${method}`,
 ): Promise<WorkspaceApiResponse> {
-  const domain = validateWorkspace(workspace);
+  const domain = normalizeWorkspaceDomain(workspace);
   const cookieHeader = loadCookieHeader();
   const token = await getWorkspaceClientToken(domain, cookieHeader);
   const body = new FormData();
@@ -157,7 +157,7 @@ export async function fetchWorkspaceAdminPage(
   workspace: string,
   path: string,
 ): Promise<string> {
-  const domain = validateWorkspace(workspace);
+  const domain = normalizeWorkspaceDomain(workspace);
   if (!path.startsWith("/admin/")) {
     throw new Error(`Refusing to fetch a non-admin path: ${path}`);
   }
