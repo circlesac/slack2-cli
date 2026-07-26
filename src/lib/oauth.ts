@@ -73,7 +73,12 @@ export async function exchangeCodeForToken(
   clientId: string,
   clientSecret: string,
   redirect: string,
-): Promise<{ accessToken: string; botUserId: string }> {
+): Promise<{
+  accessToken: string;
+  botUserId: string;
+  userToken?: string;
+  authedUserId?: string;
+}> {
   const res = await fetch("https://slack.com/api/oauth.v2.access", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -90,6 +95,10 @@ export async function exchangeCodeForToken(
     error?: string;
     access_token?: string;
     bot_user_id?: string;
+    authed_user?: {
+      id?: string;
+      access_token?: string;
+    };
   };
 
   if (!data.ok || !data.access_token) {
@@ -99,6 +108,8 @@ export async function exchangeCodeForToken(
   return {
     accessToken: data.access_token,
     botUserId: data.bot_user_id ?? "",
+    userToken: data.authed_user?.access_token,
+    authedUserId: data.authed_user?.id,
   };
 }
 

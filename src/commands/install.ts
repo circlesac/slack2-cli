@@ -37,7 +37,10 @@ export const installCommand = defineCommand({
 
     // Fetch scopes from the app's manifest
     const scopes = await getManifestScopes(app.workspace, appId);
-    console.log(`Scopes: ${scopes.bot.join(", ")}`);
+    console.log(`Bot scopes: ${scopes.bot.join(", ")}`);
+    if (scopes.user.length > 0) {
+      console.log(`User scopes: ${scopes.user.join(", ")}`);
+    }
 
     let authorizeUrl =
       `https://slack.com/oauth/v2/authorize` +
@@ -53,7 +56,7 @@ export const installCommand = defineCommand({
     const code = await waitForOAuthCode(authorizeUrl);
 
     console.log("Exchanging code for bot token...");
-    const { accessToken, botUserId } = await exchangeCodeForToken(
+    const { accessToken, botUserId, userToken, authedUserId } = await exchangeCodeForToken(
       code,
       app.client_id,
       app.client_secret,
@@ -62,10 +65,16 @@ export const installCommand = defineCommand({
 
     app.bot_token = accessToken;
     app.bot_user_id = botUserId;
+    app.user_token = userToken;
+    app.authed_user_id = authedUserId;
     addApp(app);
 
     console.log(`\nBot token: ${accessToken.slice(0, 20)}...`);
     console.log(`Bot user:  ${botUserId}`);
+    if (userToken) {
+      console.log(`User token: ${userToken.slice(0, 20)}...`);
+      console.log(`Authed user: ${authedUserId ?? "unknown"}`);
+    }
     console.log(`\nStored in ~/.config/slack2/apps.json`);
   },
 });

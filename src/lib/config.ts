@@ -16,6 +16,8 @@ export interface AppEntry {
   signing_secret?: string;
   bot_token?: string;
   bot_user_id?: string;
+  user_token?: string;
+  authed_user_id?: string;
   created_at: string;
 }
 
