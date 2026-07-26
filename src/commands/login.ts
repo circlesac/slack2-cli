@@ -7,7 +7,7 @@ export const loginCommand = defineCommand({
   meta: {
     name: "login",
     description:
-      "Save a browser session for app discovery, credential import, and webhook lookup",
+      "Save a browser session for app discovery and workspace administration",
   },
   args: {
     cookie: {
@@ -37,7 +37,7 @@ export const loginCommand = defineCommand({
       }
       cookieValue = result.value;
       source = result.source;
-      console.log(`Found cookie from ${source}: ${cookieValue.slice(0, 25)}...`);
+      console.log(`Found Slack session from ${source}.`);
     }
 
     // Save as cookie array (compatible with fetch)

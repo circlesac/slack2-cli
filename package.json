@@ -1,6 +1,6 @@
 {
   "name": "@circlesac/slack2",
-  "description": "Slack app lifecycle CLI — create, install, and manage Slack apps from the terminal",
+  "description": "Slack app lifecycle and workspace administration CLI",
   "license": "MIT",
   "type": "module",
   "bin": {

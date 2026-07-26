@@ -1,11 +1,15 @@
 # slack2
 
-Slack **app lifecycle** CLI — create, install, inspect, and manage Slack apps (and their incoming webhooks) from the terminal, using your existing browser session. No bot token juggling, no clicking through `api.slack.com/apps`.
+Slack **app lifecycle and workspace administration** CLI. Create and manage
+Slack apps, inspect workspace settings, configure profile fields, update
+API-managed member profiles, and read access or audit logs from the terminal.
 
 ```bash
 slack2 list                                   # apps you can manage
 slack2 import A0123456789                      # pull an app's credentials into local config
 slack2 webhook get A0123456789 --channel ops  # print a channel's incoming webhook URL
+slack2 admin profile-field list -w example     # inspect workspace profile writers
+slack2 admin access-log list -w example        # redacted workspace access log
 ```
 
 ## Install
@@ -20,13 +24,20 @@ npm install -g @circlesac/slack2-cli
 
 ## Authentication
 
-`slack2` drives the Slack app-management UI/APIs as **you**, via your browser session — there's no separate API token to provision.
+`slack2` uses your Slack browser session for app-management pages and workspace
+administration surfaces that Slack does not expose through a stable public API.
 
 ```bash
-slack2 login    # reads the Slack session cookie from Chrome / the Slack app
+slack2 login    # reads the Slack session cookie from a Chromium browser
 ```
 
-The session is saved to `~/.config/slack2/cookies.json`. Re-run `slack2 login` if a command reports the session expired. App credentials imported with `slack2 import` are stored in `~/.config/slack2/apps.json`.
+The session is saved under the XDG state directory (normally
+`~/.local/state/slack2/cookies.json`). Re-run `slack2 login` if a command
+reports that the session expired. Imported app metadata is stored under the XDG
+cache directory (normally `~/.cache/slack2/apps.json`).
+
+Manifest lifecycle commands also use the official Slack CLI credentials in
+`~/.slack/credentials.json`.
 
 ## Commands
 
@@ -43,6 +54,15 @@ The session is saved to `~/.config/slack2/cookies.json`. Re-run `slack2 login` i
 | `webhook list` | `<APP-ID>` `--json` | List the app's incoming webhooks (channel + URL) |
 | `webhook get` | `<APP-ID>` `--channel <name>` | Print one channel's incoming webhook URL (scriptable) |
 | `webhook add` | `<APP-ID>` | Mint a new incoming webhook via OAuth (pick the channel on the consent screen) |
+| `admin whoami` | `-w/--workspace` `--json` | Show the signed-in member's workspace role |
+| `admin profile-field list/get` | `-w/--workspace` `--json` | Inspect field source, visibility, and allowed writers |
+| `admin profile-field update` | `<field>` `--source member\|api\|scim` `--visible\|--hidden` | Change one field with a diff, confirmation, and `--dry-run` |
+| `admin member-profile get` | `<member>` `-w/--workspace` | Read one member profile |
+| `admin member-profile update` | `<member>` `--title` `--field <id>=<value>` | Update API-managed values with confirmation and `--dry-run` |
+| `admin auth show` | `-w/--workspace` | Show a whitelisted authentication summary |
+| `admin billing show/history` | `-w/--workspace` | Show plan, renewal, seat count, cost, and redacted billing events |
+| `admin audit-log list` | `-w/--workspace` filters | Read Enterprise Audit Logs API events |
+| `admin access-log list` | `-w/--workspace` filters | Read paid-workspace access logs |
 
 App IDs look like `A0123456789` — find them with `slack2 list`.
 
@@ -50,7 +70,67 @@ App IDs look like `A0123456789` — find them with `slack2 list`.
 
 `slack2` does not manage app display profiles or icons. Use the official Slack CLI and app manifest for `display_information` (`name`, `description`, `long_description`, and `background_color`) and app icons.
 
-The browser session used by `slack2 login` is reserved for operations that the public Slack APIs and official CLI do not expose: discovering all apps from the app-management page, importing existing app secrets, and looking up existing incoming webhook URLs.
+The browser session used by `slack2 login` is reserved for operations that the
+public Slack APIs and official CLI do not expose: discovering all apps,
+importing existing app secrets, looking up incoming webhook URLs, reading
+workspace-admin state, and publishing profile field configuration.
+
+## Workspace administration
+
+Every admin command requires an explicit workspace domain:
+
+```bash
+# Verify the session and role
+slack2 admin whoami --workspace example
+
+# Profile field schema
+slack2 admin profile-field list --workspace example
+slack2 admin profile-field get Title --workspace example --json
+slack2 admin profile-field update Title \
+  --workspace example \
+  --source api \
+  --dry-run
+
+# Member profile values (only API-managed fields can be written)
+slack2 admin member-profile get U0123456789 --workspace example
+slack2 admin member-profile update U0123456789 \
+  --workspace example \
+  --title "Engineering" \
+  --field "Alternate Phone=+1 555 0100" \
+  --dry-run
+```
+
+Field names must match exactly. IDs are safer for automation. Ambiguous member
+or field names are rejected rather than resolved to the first match.
+
+Mutating commands always print a before/after diff. They require interactive
+confirmation unless `--yes` is supplied, and support `--dry-run` without
+sending the write request.
+
+### Profile data sources
+
+- `member`: the member can edit the value in Slack.
+- `api`: owners/admins with an eligible user token can update it through
+  `users.profile.set`; members cannot edit it directly.
+- `scim`: the mapped identity provider/SCIM integration owns the value.
+
+Slack's admin profile editor publishes the entire profile schema at once.
+`slack2` reads the latest schema, modifies exactly one resolved field, displays
+the diff, and then publishes the complete schema only after confirmation.
+
+### Audit logs and access logs
+
+These are separate data sets and commands:
+
+- `admin audit-log list` uses Slack's Audit Logs API. It requires an Enterprise
+  organization, an org-owner `xoxp` user token, and `auditlogs:read`. Select a
+  locally installed app with `--app-id`, or set `SLACK2_AUDIT_TOKEN`.
+- `admin access-log list` uses `team.accessLogs` and is available on eligible
+  paid workspaces to owners/admins.
+
+Network identifiers (`ip`, `ip_address`, `isp`, and `user_agent`) are redacted
+by default, including in JSON. Pass `--include-network` only when those values
+are needed for an authorized investigation.
 
 ### Incoming webhooks
 
@@ -69,8 +149,10 @@ slack2 webhook add A0123456789
 
 ## Notes
 
-- Commands operate per app (`<APP-ID>`); there is no workspace-wide aggregation — that mirrors Slack's own model, where webhooks and credentials are app-scoped.
-- Credentials and webhook URLs are secrets. Treat `~/.config/slack2/` accordingly and don't commit captured values.
+- App lifecycle commands operate per app (`<APP-ID>`); admin commands operate
+  per explicit workspace (`--workspace`).
+- Saved sessions, app credentials, and webhook URLs are secrets. Treat the
+  slack2 XDG state/cache files accordingly and never commit captured values.
 
 ## Release
 
