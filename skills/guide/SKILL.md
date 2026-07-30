@@ -25,9 +25,11 @@ Use `slack2` for the workflows that the public Slack APIs and official CLI do no
 
 Do not use or extend `slack2` for app display profiles or icons. Manage `display_information` (`name`, `description`, `long_description`, and `background_color`) through the app manifest and use the official Slack CLI for manifest synchronization and icon upload.
 
-`slack2 login` captures a browser session for `list`, `import`, `webhook
-list/get`, and `admin` workspace operations. Normal manifest lifecycle commands
-use the official Slack CLI credentials in `~/.slack/credentials.json`.
+`slack2 login` captures a browser or Slack desktop session for `list`, `import`,
+`webhook list/get`, and `admin` workspace operations. When multiple Slack
+sessions exist, use `slack2 login --workspace example` to save one that can
+open the target workspace. Normal manifest lifecycle commands use the official
+Slack CLI credentials in `~/.slack/credentials.json`.
 
 Never print or request the saved session cookie or workspace client token.
 Admin JSON output redacts network identifiers unless `--include-network` is

@@ -1,5 +1,5 @@
 /**
- * Read the Slack `d` cookie from any Chromium-based browser's cookie database.
+ * Read the Slack `d` cookie from a Chromium-based browser or Slack desktop.
  * macOS only — uses Keychain to decrypt the cookie value.
  *
  * Supported: Chrome, Arc, Edge, Brave, Chromium, Comet
@@ -7,11 +7,12 @@
  */
 
 import { Database } from "bun:sqlite";
-import { existsSync, copyFileSync, unlinkSync, readdirSync, statSync } from "node:fs";
+import { copyFileSync, unlinkSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
+import { findCookieDbs } from "./browser-cookie-paths.ts";
 
 interface BrowserConfig {
   name: string;
@@ -50,35 +51,12 @@ const BROWSERS: BrowserConfig[] = [
     keychainService: "Comet Safe Storage",
     userDataDir: join(homedir(), "Library", "Application Support", "Comet"),
   },
+  {
+    name: "Slack",
+    keychainService: "Slack Safe Storage",
+    userDataDir: join(homedir(), "Library", "Application Support", "Slack"),
+  },
 ];
-
-function findCookieDbs(userDataDir: string): string[] {
-  if (!existsSync(userDataDir)) return [];
-  const dbs: string[] = [];
-  let entries: string[];
-  try {
-    entries = readdirSync(userDataDir);
-  } catch {
-    return [];
-  }
-  for (const entry of entries) {
-    if (entry !== "Default" && !entry.startsWith("Profile ")) continue;
-    const dir = join(userDataDir, entry);
-    try {
-      if (!statSync(dir).isDirectory()) continue;
-    } catch {
-      continue;
-    }
-    for (const rel of [["Cookies"], ["Network", "Cookies"]]) {
-      const path = join(dir, ...rel);
-      if (existsSync(path)) {
-        dbs.push(path);
-        break;
-      }
-    }
-  }
-  return dbs;
-}
 
 function getKeychainKey(browser: BrowserConfig): Buffer {
   const output = execSync(
@@ -144,24 +122,31 @@ function findSlackCookieInDb(cookiesPath: string, browser: BrowserConfig): strin
 }
 
 /**
- * Reads the Slack `d` cookie from any available Chromium browser.
- * Tries each browser in order until one has the cookie.
+ * Reads the Slack `d` cookie from any available browser or Slack desktop app.
+ * Tries each source in order until one has an accepted cookie.
  */
-export async function readSlackCookie(): Promise<{
+export async function readSlackCookie(
+  accepts?: (value: string) => boolean | Promise<boolean>,
+): Promise<{
   value: string;
   source: string;
 } | null> {
   if (process.platform !== "darwin") return null;
+  const acceptsCookie = accepts ?? (() => true);
 
   for (const browser of BROWSERS) {
     const dbs = findCookieDbs(browser.userDataDir);
     for (const db of dbs) {
       const value = findSlackCookieInDb(db, browser);
-      if (value) {
-        const profile = db.split("/").slice(-3, -1).join("/").includes("Network")
-          ? db.split("/").slice(-3, -2)[0]
-          : db.split("/").slice(-2, -1)[0];
-        return { value, source: `${browser.name} (${profile})` };
+      if (value && await acceptsCookie(value)) {
+        const relative = db.slice(browser.userDataDir.length + 1);
+        const profile = relative === "Cookies" || relative === "Network/Cookies"
+          ? ""
+          : relative.split("/")[0];
+        return {
+          value,
+          source: profile ? `${browser.name} (${profile})` : browser.name,
+        };
       }
     }
   }

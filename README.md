@@ -29,7 +29,8 @@ npm install -g @circlesac/slack2-cli
 administration surfaces that Slack does not expose through a stable public API.
 
 ```bash
-slack2 login    # reads the Slack session cookie from a Chromium browser
+slack2 login                         # reads the first Slack browser session
+slack2 login --workspace example     # selects a browser or desktop-app session for one workspace
 ```
 
 The session is saved under the XDG state directory (normally
@@ -44,7 +45,7 @@ Manifest lifecycle commands also use the official Slack CLI credentials in
 
 | Command | Args / options | What it does |
 |---|---|---|
-| `login` | — | Save the Slack session from browser cookies |
+| `login` | `-w/--workspace` | Save a matching Slack browser or desktop-app session |
 | `create` | `<manifest>` | Create an app via the Manifest API |
 | `install` | `<APP-ID>` | Install a created app to the workspace (OAuth) → bot token |
 | `list` | — | List Slack apps from api.slack.com |
